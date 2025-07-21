@@ -1,4 +1,4 @@
-# 📧 gphish-cli
+# 📧 phishctl
 
 A lightweight command-line toolkit for automating GoPhish operations:
 
