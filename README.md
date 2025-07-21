@@ -55,6 +55,7 @@ output/
 python3 upload_gps.py -f output/G01.csv
 
 # Upload all csvs in a folder
+python3 upload_gps.py -ff output/
 ```
 
 # 🎯 Step 4: Launch a Campaign (create_camp.py)
