@@ -83,6 +83,14 @@ python3 create_camp.py \
 | `-g`   | Target group name (uploaded earlier) |
 | `-now` | (Optional) Launch immediately        |
 
+# 📄 Step 5: Report Parsing
+
+- Make sure to download all campaign results CSV and place in one folder.
+
+```bash
+$ python3 rpt-csv2xlsx.py -ff results -o campaign-results.xlsx
+```
+
 # ⚠️ Warnings
 
 - SSL cert warnings are disabled by default (verify=False) in scripts. For production, you should enable SSL verification.
