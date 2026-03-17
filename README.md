@@ -13,9 +13,37 @@ A lightweight command-line toolkit for automating GoPhish operations:
 ├── mail_gen.py         # Split emails into multiple CSVs for campaigns
 ├── upload_gps.py       # Upload CSV groups to GoPhish
 ├── create_camp.py      # Create and launch campaigns
+├── pusher-puller.py    # Pull/Push templates and landing pages
 ├── creds.conf          # Configuration file (GoPhish host and API key)
 └── output/             # Output CSVs from mail_gen.py
 ```
+
+# 🛠️ Step 0: Sync Templates & Landing Pages (pusher-puller.py)
+
+Before launching campaigns, you can manage your email templates and landing pages locally:
+
+```bash
+# Pull all templates
+python3 pusher-puller.py -t -pull
+
+# Push updated templates
+python3 pusher-puller.py -t -push
+
+# Pull all landing pages
+python3 pusher-puller.py -l -pull
+
+# Push updated landing pages
+python3 pusher-puller.py -l -push
+```
+
+| Flag   | Description                                |
+| ------ | ------------------------------------------ |
+| `-t`   | Target Templates (folder: templates/)      |
+| `-l`   | Target Landing Pages (folder: landing/)    |
+| `-pull`| Download from server                       |
+| `-push`| Sync local changes to server               |
+| `--dir`| (Optional) Override default folder path    |
+
 
 # 🔐 Step 1: Setup creds.conf
 
