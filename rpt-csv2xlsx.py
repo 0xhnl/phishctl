@@ -39,32 +39,35 @@ def combine_csv_to_excel(input_folder, output_file):
         print("No CSV files found.")
         return
 
-    pattern = re.compile(r'^([CF]\d+)_results\.csv$')
-    campaigns = {}
+    pattern = re.compile(r'^([CF]\d+(?:-\d+)?)_results\.csv$')
+    campaigns = []
 
     for file in all_files:
         filename = os.path.basename(file)
         match = pattern.match(filename)
         if match:
             campaign_name = match.group(1)
-            campaigns[campaign_name] = file
+            campaigns.append((campaign_name, file))
 
     if not campaigns:
         print("No valid campaign files.")
         return
 
     def sort_key(name):
-        match = re.match(r'^([CF])(\d+)$', name)
-        return (match.group(1), int(match.group(2)))
+        match = re.match(r'^([CF])(\d+)(?:-(\d+))?$', name)
+        main = int(match.group(2))
+        sub = int(match.group(3)) if match.group(3) is not None else -1
+        return (match.group(1), main, sub)
 
-    sorted_keys = sorted(campaigns.keys(), key=sort_key)
+    campaigns.sort(key=lambda item: sort_key(item[0]))
+    sorted_keys = [name for name, _ in campaigns]
 
     summary_results = {}
     dataframes = {}
 
     # Read all first
-    for key in sorted_keys:
-        df = pd.read_csv(campaigns[key])
+    for key, file_path in campaigns:
+        df = pd.read_csv(file_path)
 
         desired_columns = [
             'id', 'email', 'status',
