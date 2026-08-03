@@ -2,6 +2,7 @@
 
 import requests
 import csv
+import json
 import os
 import sys
 import argparse
@@ -64,6 +65,69 @@ def save_to_csv(data, filename):
                     flat_entry[key] = value
             writer.writerow(flat_entry)
 
+def extract_submitted_data(timeline):
+    """Pull 'Submitted Data' events from a campaign timeline.
+
+    Each row is one form submission: the target's email/time plus every
+    field they submitted (payload) and their browser IP / user-agent.
+    A target can submit more than once, so there may be more rows here
+    than there are 'Submitted Data' statuses in the results.
+    """
+    rows = []
+    for event in timeline or []:
+        if event.get('message') != 'Submitted Data':
+            continue
+
+        row = {'email': event.get('email', ''), 'time': event.get('time', '')}
+
+        details = event.get('details')
+        if isinstance(details, str) and details:
+            try:
+                details = json.loads(details)
+            except json.JSONDecodeError:
+                details = {}
+        if not isinstance(details, dict):
+            details = {}
+
+        payload = details.get('payload') or {}
+        for key, value in payload.items():
+            if key == 'email':
+                continue  # already captured from the event
+            if isinstance(value, list):
+                value = '; '.join(str(v) for v in value)
+            row[key] = value
+
+        browser = details.get('browser') or {}
+        row['ip'] = browser.get('address', '')
+        row['user-agent'] = browser.get('user-agent', '')
+
+        rows.append(row)
+    return rows
+
+
+def save_submitted_to_csv(rows, filename):
+    """Save submitted-data rows to CSV, if any."""
+    if not rows:
+        return 0
+
+    # Stable column order: identity first, metadata last, payload fields between.
+    lead = ['email', 'time']
+    tail = ['ip', 'user-agent']
+    payload_cols = []
+    for row in rows:
+        for key in row:
+            if key not in lead and key not in tail and key not in payload_cols:
+                payload_cols.append(key)
+    fieldnames = lead + payload_cols + tail
+
+    with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(row)
+    return len(rows)
+
+
 def main():
     parser = argparse.ArgumentParser(description='Download Gophish campaign results as CSV')
     parser.add_argument('-o', '--output', required=True, help='Output directory')
@@ -94,9 +158,16 @@ def main():
             # Get detailed results
             details = get_campaign_results(api_url, api_key, campaign_id)
 
-            # Save only results (no events)
+            # Save per-target results (latest status only)
             results_filename = os.path.join(args.output, f"{campaign_name}_results.csv")
             save_to_csv(details.get('results', []), results_filename)
+
+            # Save the actual submitted form data from the timeline
+            submitted = extract_submitted_data(details.get('timeline', []))
+            submitted_filename = os.path.join(args.output, f"{campaign_name}_submitted.csv")
+            count = save_submitted_to_csv(submitted, submitted_filename)
+            if count:
+                print(f"  Saved {count} submitted-data records")
 
         print(f"Successfully saved campaign results to {args.output}")
 
